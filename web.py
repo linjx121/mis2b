@@ -45,7 +45,7 @@ def account():
 
 @app.route("/math2")
 def math2():
-    return render_template("math2.py")
+    return render_template("math2.html")
 
 if __name__ == "__main__":
     app.run(debug=True)
