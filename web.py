@@ -43,7 +43,7 @@ def index():
 def spider1():
     R = ""
     url = "https://www1.pu.edu.tw/~tcyang/course.html"
-    Data = requests.get(url)
+    Data = requests.get(url, verify=False)
     Data.encoding = "utf-8"
     #print(Data.text)
     sp = BeautifulSoup(Data.text, "html.parser")
@@ -53,20 +53,23 @@ def spider1():
         R += i.text + i.get("href") + "<br>"
     return R
       
-@app.route("/read2")
+@app.route("/read2", methods=["POST", "GET"])
 def read2():
-    Result = ""
-    keyword = input("請輸入姓名關鍵字")
-    db = firestore.client()
-    collection_ref = db.collection("靜宜資管2026B")    
-    docs = collection_ref.get()
-    for doc in docs:      
-        teacher = doc.to_dict()
-        if keyword in teacher["name"]:   
-            Result += str(teacher) + "<br>"   
-
-    if Result == "":
-            Result = "抱歉，查無此關鍵字姓名之老師資料"
+    if request.method == "POST":
+        Teacher = request.form["teacher"]
+        db = firestore.client()
+        collection_ref = db.collection("靜宜資管2026B")
+        docs = collection_ref.order_by("name").get()
+        
+        # 建立一個列表來儲存找到的老師資料
+        teachers_list = []
+        for doc in docs:
+            dict_data = doc.to_dict()
+            if Teacher in dict_data.get("name", ""):
+                teachers_list.append(dict_data)
+        
+        # 將結果、關鍵字傳給 HTML 模板
+        return render_template("read2.html", teachers=teachers_list, keyword=Teacher)
     else:
         return render_template("read2.html")
 
