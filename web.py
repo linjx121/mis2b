@@ -36,14 +36,46 @@ def index():
     link += "<a href=/read>讀取Firestore資料</a><hr>"
     link += "<a href=/read2>靜宜資管老師查詢</a><hr>"
     link += "<a href=/spider1>爬取子青老師本學期課程</a><hr>"
+    link += "<a href=/movie1>爬取即將上映電影</a><hr>"
     return link
 
+
+@app.route("/movie1", methods=['GET', 'POST'])
+def movie1():
+    keyword = ""
+    movies = []  # 用來存放篩選後的電影資料
+    
+    if request.method == 'POST':
+        keyword = request.form.get("keyword")
+        
+        url = "http://www.atmovies.com.tw/movie/next/"
+        Data = requests.get(url)
+        Data.encoding = "utf-8"
+        sp = BeautifulSoup(Data.text, "html.parser")
+        result = sp.select(".filmListAllX li")
+        
+        for item in result:
+            title = item.find("img").get("alt") # 電影名稱
+            
+            # 關鍵字篩選：如果名稱包含關鍵字，才加入清單
+            if keyword in title:
+                link = "https://www.atmovies.com.tw" + item.find("a").get("href")
+                img_src = "https://www.atmovies.com.tw" + item.find("img").get("src")
+                
+                # 存成字典方便 HTML 讀取
+                movies.append({
+                    "title": title,
+                    "link": link,
+                    "img": img_src
+                })
+
+    return render_template("movie1.html", movies=movies, keyword=keyword)
 
 @app.route("/spider1")
 def spider1():
     R = ""
     url = "https://www1.pu.edu.tw/~tcyang/course.html"
-    Data = requests.get(url, verify=False)
+    Data = requests.get(url)
     Data.encoding = "utf-8"
     #print(Data.text)
     sp = BeautifulSoup(Data.text, "html.parser")
@@ -53,25 +85,30 @@ def spider1():
         R += i.text + i.get("href") + "<br>"
     return R
       
-@app.route("/read2", methods=["POST", "GET"])
+@app.route("/read2", methods=["GET", "POST"])
 def read2():
-    if request.method == "POST":
-        Teacher = request.form["teacher"]
+    # 取得前端 input name="keyword" 的值
+    keyword = request.values.get("keyword")
+    Result = ""
+    
+    if keyword:
         db = firestore.client()
+        # 讀取集合
         collection_ref = db.collection("靜宜資管2026B")
-        docs = collection_ref.order_by("name").get()
+        docs = collection_ref.get()
         
-        # 建立一個列表來儲存找到的老師資料
-        teachers_list = []
         for doc in docs:
-            dict_data = doc.to_dict()
-            if Teacher in dict_data.get("name", ""):
-                teachers_list.append(dict_data)
+            teacher = doc.to_dict()
+            name = teacher.get("name", "")
+            # 比對：如果輸入的姓氏在名字裡面
+            if keyword in name:
+                Result += f"找到老師：{name}<br>"
         
-        # 將結果、關鍵字傳給 HTML 模板
-        return render_template("read2.html", teachers=teachers_list, keyword=Teacher)
-    else:
-        return render_template("read2.html")
+        if Result == "":
+            Result = f"找不到姓氏包含「{keyword}」的老師"
+            
+    # 將 Result 傳回給 read2.html
+    return render_template("read2.html", Result=Result)
 
 @app.route("/read")
 def read():
