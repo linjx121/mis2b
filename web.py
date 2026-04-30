@@ -44,37 +44,40 @@ def index():
 @app.route("/searchmovie", methods=['GET', 'POST'])
 def searchmovie():
     keyword = ""
-    movies = []  # 用來存放篩選後的電影資料
-    
+    movies = [] 
+
     if request.method == 'POST':
         keyword = request.form.get("keyword")
-        
+
         url = "http://www.atmovies.com.tw/movie/next/"
         Data = requests.get(url)
         Data.encoding = "utf-8"
         sp = BeautifulSoup(Data.text, "html.parser")
         result = sp.select(".filmListAllX li")
-        
-        for item in result:
-            movie_id = item.find("a").get("href").replace("/movie/","").replace("/","")
-            title = item.find(class_="filmtitle").text #電影名稱
-            picture = "https://www.atmovies.com.tw" + item.find("img").get("src") #電影海報
-            hyperlink = "https://www.atmovies.com.tw" + item.find("a").get("href") #電腦編號
-            showDate = item.find(class_="runtime").text[5:15] 
-            
-            # 關鍵字篩選：如果名稱包含關鍵字，才加入清單
-            if keyword in title:
-                link = "https://www.atmovies.com.tw" + item.find("a").get("href")
-                img_src = "https://www.atmovies.com.tw" + item.find("img").get("src")
-                
-                # 存成字典方便 HTML 讀取
-                movies.append({
-                    "title": title,
-                    "link": link,
-                    "img": img_src
-                })
 
-    return render_template("movie1.html", movies=movies, keyword=keyword)
+        for item in result:
+            try:
+                # 取得編號與資料
+                movie_id = item.find("a").get("href").replace("/movie/", "").replace("/", "")
+                title = item.find(class_="filmtitle").text
+                picture = "https://www.atmovies.com.tw" + item.find("img").get("src")
+                hyperlink = "https://www.atmovies.com.tw" + item.find("a").get("href")
+                
+                runtime_text = item.find(class_="runtime").text
+                showDate = runtime_text[5:15] if "上映日期" in runtime_text else "未提供"
+
+                if keyword in title:
+                    movies.append({
+                        "movie_id": movie_id,
+                        "title": title,
+                        "picture": picture,
+                        "hyperlink": hyperlink,
+                        "showDate": showDate
+                    })
+            except:
+                continue
+
+    return render_template("serchmovie.html", movies=movies, keyword=keyword)
 
 @app.route("/spidermovie")
 def spidermovie():
