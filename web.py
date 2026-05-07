@@ -52,7 +52,7 @@ def road():
     JsonData = json.loads(Data.text)
     R = ""
     for item in JsonData:
-        R += item["路口名稱"] + "\n" + "：發生" + "\n" + item["總件數"] + "\n" + "件，主因是" + "\n" + item["主要肇因"] + "\n\n"
+        R += item["路口名稱"] + "\n\n" + "：發生" + "\n" + item["總件數"] + "\n" + "件，主因是" + "\n" + item["主要肇因"] + "\n\n"
     return R
 
 @app.route("/searchmovie", methods=['GET', 'POST'])
